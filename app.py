@@ -8,7 +8,7 @@ import altair as alt
 from huggingface_hub import hf_hub_download
 
 # --- PAGE SETUP ---
-st.set_page_config(page_title="NBA Pressure Analysis", layout="wide")
+st.set_page_config(page_title="NBA True FT%", layout="wide")
 
 # --- UI CLEANUP: REMOVE 'RUNNING' & TOOLBAR ---
 st.markdown("""
@@ -40,7 +40,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("NBA True Clutch & Pressure-Adjusted FT%")
+st.title("NBA Raw, Pressure-Adjusted, & True Clutch FT%")
 
 # --- CONFIGURATION ---
 REPO_ID = "qpmulho/nba-data-repo" 
@@ -129,7 +129,7 @@ if conn:
             c1, c2, c3 = st.columns(3)
             c1.metric("Raw FT%", f"{raw_avg:.1f}%")
             c2.metric("Pressure-Adjusted", f"{pressure_avg:.1f}%", f"{pressure_avg - raw_avg:+.1f}%")
-            c3.metric("True Clutch FT%", f"{clutch_pct:.1f}%")
+            c3.metric("True Clutch (>15% Win Probability Swing) FT%", f"{clutch_pct:.1f}%")
 
             st.subheader("Accuracy by Quarter")
             chart_data = res_df.copy()
