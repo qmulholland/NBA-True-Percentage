@@ -17,34 +17,22 @@ DB_FILENAME = "nba.sqlite"
 
 @st.cache_resource
 def get_connection():
-    # Use absolute path to ensure SQLite finds the file in the app directory
     db_path = os.path.join(os.getcwd(), DB_FILENAME)
     
     if not os.path.exists(db_path):
         try:
-            with st.spinner("Downloading database from Hugging Face..."):
-                # Fetch token from Streamlit Secrets
-                token = st.secrets["HF_TOKEN"]
-                
-                # Download file to temporary cache
+            with st.spinner("Downloading database (Public)..."):
+                # Notice token is removed here
                 temp_path = hf_hub_download(
                     repo_id=REPO_ID, 
                     filename=DB_FILENAME, 
-                    repo_type="dataset",
-                    token=token
+                    repo_type="dataset"
                 )
-                
-                # Copy to local directory (more robust than move for cross-device links)
                 shutil.copy2(temp_path, db_path)
-                
-                if not os.path.exists(db_path):
-                    st.error("Database file could not be created in the local directory.")
-                    return None
         except Exception as e:
             st.error(f"Failed to download database: {e}")
             return None
             
-    # Connect using the absolute path
     return sqlite3.connect(db_path, check_same_thread=False)
 
 def simulate_game_win(margin, seconds_left, trials=10000):
