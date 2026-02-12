@@ -10,25 +10,22 @@ from huggingface_hub import hf_hub_download
 # --- PAGE SETUP ---
 st.set_page_config(page_title="NBA Pressure Analysis", layout="wide")
 
-# --- THE BRUTE FORCE UI FIX ---
-# This targets the specific containers Streamlit uses for the 'Running' status
+# --- REFINED UI FIX ---
+# This hides the 'Running' spinner without breaking the sidebar or header layout
 st.markdown("""
     <style>
-    /* Hides the top-right status spinner and 'Running' text */
+    /* Target only the status spinner and the text next to it */
     [data-testid="stStatusWidget"] {
+        visibility: hidden !important;
         display: none !important;
     }
-    /* Hides the entire header container where the status widget lives */
-    header[data-testid="stHeader"] {
+    /* Hide the 'Running...' toolbar but keep the header for sidebar functionality */
+    div[data-testid="stStatusWidget"] div {
         display: none !important;
     }
-    /* Hides the toolbar and decoration line */
-    [data-testid="stToolbar"], [data-testid="stDecoration"] {
+    /* Hide the red decoration line at the top */
+    [data-testid="stDecoration"] {
         display: none !important;
-    }
-    /* Fixes padding so the title doesn't hit the very top since we hid the header */
-    .main .block-container {
-        padding-top: 2rem;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -44,7 +41,6 @@ def get_connection():
     db_path = os.path.join(os.getcwd(), DB_FILENAME)
     if not os.path.exists(db_path):
         try:
-            # We use st.spinner locally here so you actually see the download progress once
             with st.spinner("Preparing database..."):
                 temp_path = hf_hub_download(repo_id=REPO_ID, filename=DB_FILENAME, repo_type="dataset")
                 shutil.copy2(temp_path, db_path)
@@ -69,7 +65,6 @@ def simulate_game_win_fast(margin, seconds_left, trials=10000):
     team_b_pts = np.random.poisson(1.08, (trials, possessions)).sum(axis=1)
     return np.mean((margin + team_a_pts - team_b_pts) > 0)
 
-# Explicitly silencing the cache spinner
 @st.cache_data(show_spinner=False)
 def get_processed_player_data(selected_player, _conn):
     query = """
@@ -103,7 +98,7 @@ conn = get_connection()
 if conn:
     player_list = pd.read_sql("SELECT DISTINCT full_name FROM player ORDER BY full_name", conn)
     
-    # Sidebar starts blank
+    # Sidebar selection
     selected_player = st.sidebar.selectbox(
         "Select Player", 
         player_list['full_name'], 
@@ -112,7 +107,7 @@ if conn:
     )
 
     if selected_player:
-        # This is the only spinner that will now be visible
+        # This custom spinner remains as the only visible feedback
         with st.spinner(f"Retrieving statistics for {selected_player}..."):
             res_df = get_processed_player_data(selected_player, conn)
 
@@ -142,5 +137,4 @@ if conn:
         else:
             st.warning(f"No data for {selected_player}.")
     else:
-        # Default view
         st.info("Select a player from the sidebar to begin.")
