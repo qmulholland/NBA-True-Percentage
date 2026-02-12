@@ -8,39 +8,49 @@ import altair as alt
 from huggingface_hub import hf_hub_download
 
 # --- PAGE SETUP ---
-st.set_page_config(page_title="NBA True FT%", layout="wide")
+st.set_page_config(page_title="NBA Pressure Analysis", layout="wide")
 
 # --- UI CLEANUP: REMOVE 'RUNNING' & TOOLBAR ---
 st.markdown("""
     <style>
-    /* 1. Hide the 'Running...' status bubble entirely */
-    [data-testid="stStatusWidget"] {
-        display: none !important;
-        visibility: hidden !important;
-    }
+    /* Hides the 'Running...' status indicator */
+    [data-testid="stStatusWidget"] { display: none !important; visibility: hidden !important; }
+    /* Hides the top toolbar (Share, GitHub, etc.) */
+    header[data-testid="stHeader"] { display: none !important; }
+    /* Removes the red line at the top */
+    [data-testid="stDecoration"] { display: none !important; }
+    /* Fixes padding for a cleaner look */
+    .main .block-container { padding-top: 2rem; }
     
-    /* 2. Hide the top toolbar (Share, Star, Edit, GitHub, Menu) */
-    header[data-testid="stHeader"] {
-        display: none !important;
+    /* CUSTOM DESCRIPTION BOX STYLING */
+    .desc-box {
+        background-color: #1e2130;
+        border-left: 5px solid #60b4ff;
+        padding: 1.5rem;
+        border-radius: 5px;
+        margin-bottom: 2rem;
     }
-
-    /* 3. Hide the red decoration line at the top */
-    [data-testid="stDecoration"] {
-        display: none !important;
+    .desc-text {
+        color: #e0e0e0;
+        font-size: 1.1rem;
+        line-height: 1.6;
     }
-
-    /* 4. Adjust padding so the title isn't cut off after hiding the header */
-    .main .block-container {
-        padding-top: 1rem;
-    }
-
-    /* 5. Ensure the sidebar 'X' and burger menu are still accessible if needed */
-    /* Note: Hiding the header hides the default sidebar toggle button. 
-       The sidebar will still open/close via the edge hover or if kept open. */
     </style>
     """, unsafe_allow_html=True)
 
-st.title("NBA Raw, Pressure-Adjusted, & True Clutch FT%")
+st.title("NBA True Clutch & Pressure-Adjusted FT%")
+
+# --- DESCRIPTION BOX ---
+st.markdown("""
+    <div class="desc-box">
+        <p class="desc-text">
+            This project analyzes career free throw percentage (from the 1946-47 to the 2022-23 season), 
+            adjusting for game-state leverage and win probability swings. 
+            <strong>Standard FT%</strong> shows raw accuracy, <strong>Pressure-Adjusted</strong> weighs shots by their impact on the outcome, 
+            and <strong>True Clutch</strong> measures shots where the result has >15% win probability impact.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # --- CONFIGURATION ---
 REPO_ID = "qpmulho/nba-data-repo" 
@@ -108,7 +118,6 @@ conn = get_connection()
 if conn:
     player_list = pd.read_sql("SELECT DISTINCT full_name FROM player ORDER BY full_name", conn)
     
-    # Sidebar starts blank
     selected_player = st.sidebar.selectbox(
         "Select Player", 
         player_list['full_name'], 
@@ -117,7 +126,6 @@ if conn:
     )
 
     if selected_player:
-        # Your custom spinner is now the ONLY thing that shows
         with st.spinner(f"Retrieving statistics for {selected_player}..."):
             res_df = get_processed_player_data(selected_player, conn)
 
@@ -129,7 +137,7 @@ if conn:
             c1, c2, c3 = st.columns(3)
             c1.metric("Raw FT%", f"{raw_avg:.1f}%")
             c2.metric("Pressure-Adjusted", f"{pressure_avg:.1f}%", f"{pressure_avg - raw_avg:+.1f}%")
-            c3.metric("True Clutch (>15% Win Probability Swing) FT%", f"{clutch_pct:.1f}%")
+            c3.metric("True Clutch FT%", f"{clutch_pct:.1f}%")
 
             st.subheader("Accuracy by Quarter")
             chart_data = res_df.copy()
@@ -145,6 +153,6 @@ if conn:
 
             st.altair_chart(bars, use_container_width=True)
         else:
-            st.warning(f"No data for {selected_player}.")
+            st.warning(f"No free throw data found for {selected_player}.")
     else:
         st.info("Select a player from the sidebar to view their Pressure-Adjusted statistics.")
