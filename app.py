@@ -8,29 +8,39 @@ import altair as alt
 from huggingface_hub import hf_hub_download
 
 # --- PAGE SETUP ---
-st.set_page_config(page_title="NBA True FT%", layout="wide")
+st.set_page_config(page_title="NBA Pressure Analysis", layout="wide")
 
-# --- REFINED UI FIX ---
-# This hides the 'Running' spinner without breaking the sidebar or header layout
+# --- UI CLEANUP: REMOVE 'RUNNING' & TOOLBAR ---
 st.markdown("""
     <style>
-    /* Target only the status spinner and the text next to it */
+    /* 1. Hide the 'Running...' status bubble entirely */
     [data-testid="stStatusWidget"] {
+        display: none !important;
         visibility: hidden !important;
+    }
+    
+    /* 2. Hide the top toolbar (Share, Star, Edit, GitHub, Menu) */
+    header[data-testid="stHeader"] {
         display: none !important;
     }
-    /* Hide the 'Running...' toolbar but keep the header for sidebar functionality */
-    div[data-testid="stStatusWidget"] div {
-        display: none !important;
-    }
-    /* Hide the red decoration line at the top */
+
+    /* 3. Hide the red decoration line at the top */
     [data-testid="stDecoration"] {
         display: none !important;
     }
+
+    /* 4. Adjust padding so the title isn't cut off after hiding the header */
+    .main .block-container {
+        padding-top: 1rem;
+    }
+
+    /* 5. Ensure the sidebar 'X' and burger menu are still accessible if needed */
+    /* Note: Hiding the header hides the default sidebar toggle button. 
+       The sidebar will still open/close via the edge hover or if kept open. */
     </style>
     """, unsafe_allow_html=True)
 
-st.title("NBA Raw, Pressure-Adjusted, and True Clutch FT%")
+st.title("NBA True Clutch & Pressure-Adjusted FT%")
 
 # --- CONFIGURATION ---
 REPO_ID = "qpmulho/nba-data-repo" 
@@ -98,7 +108,7 @@ conn = get_connection()
 if conn:
     player_list = pd.read_sql("SELECT DISTINCT full_name FROM player ORDER BY full_name", conn)
     
-    # Sidebar selection
+    # Sidebar starts blank
     selected_player = st.sidebar.selectbox(
         "Select Player", 
         player_list['full_name'], 
@@ -107,7 +117,7 @@ if conn:
     )
 
     if selected_player:
-        # This custom spinner remains as the only visible feedback
+        # Your custom spinner is now the ONLY thing that shows
         with st.spinner(f"Retrieving statistics for {selected_player}..."):
             res_df = get_processed_player_data(selected_player, conn)
 
@@ -119,7 +129,7 @@ if conn:
             c1, c2, c3 = st.columns(3)
             c1.metric("Raw FT%", f"{raw_avg:.1f}%")
             c2.metric("Pressure-Adjusted", f"{pressure_avg:.1f}%", f"{pressure_avg - raw_avg:+.1f}%")
-            c3.metric("True Clutch (>15% Win Probability Swing) FT%", f"{clutch_pct:.1f}%")
+            c3.metric("True Clutch FT%", f"{clutch_pct:.1f}%")
 
             st.subheader("Accuracy by Quarter")
             chart_data = res_df.copy()
@@ -137,4 +147,4 @@ if conn:
         else:
             st.warning(f"No data for {selected_player}.")
     else:
-        st.info("Select a player from the sidebar to begin.")
+        st.info("Select a player from the sidebar to view their Pressure-Adjusted statistics.")
