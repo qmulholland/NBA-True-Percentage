@@ -38,7 +38,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("NBA Standard, Pressure-Adjust, & True Clutch FT%")
+st.title("NBA Standard, Pressure-Adjusted, & True Clutch FT%")
 
 # --- DESCRIPTION BOX ---
 st.markdown("""
