@@ -10,30 +10,42 @@ from huggingface_hub import hf_hub_download
 # --- PAGE SETUP ---
 st.set_page_config(page_title="NBA Pressure Analysis", layout="wide")
 
-# --- UI CLEANUP: HIDE THE 'RUNNING...' DIALOG ---
+# --- THE BRUTE FORCE UI FIX ---
+# This targets the specific containers Streamlit uses for the 'Running' status
 st.markdown("""
     <style>
-    /* Hides the 'Running...' status indicator in the top right/bottom */
-    div[data-testid="stStatusWidget"] {
-        visibility: hidden;
-        height: 0%;
-        position: fixed;
+    /* Hides the top-right status spinner and 'Running' text */
+    [data-testid="stStatusWidget"] {
+        display: none !important;
+    }
+    /* Hides the entire header container where the status widget lives */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    /* Hides the toolbar and decoration line */
+    [data-testid="stToolbar"], [data-testid="stDecoration"] {
+        display: none !important;
+    }
+    /* Fixes padding so the title doesn't hit the very top since we hid the header */
+    .main .block-container {
+        padding-top: 2rem;
     }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("NBA True Clutch & Pressure-Adjusted FT%")
 
-# --- CONFIGURATION & DATABASE (Same as before) ---
+# --- CONFIGURATION ---
 REPO_ID = "qpmulho/nba-data-repo" 
 DB_FILENAME = "nba.sqlite"
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def get_connection():
     db_path = os.path.join(os.getcwd(), DB_FILENAME)
     if not os.path.exists(db_path):
         try:
-            with st.spinner("Downloading database..."):
+            # We use st.spinner locally here so you actually see the download progress once
+            with st.spinner("Preparing database..."):
                 temp_path = hf_hub_download(repo_id=REPO_ID, filename=DB_FILENAME, repo_type="dataset")
                 shutil.copy2(temp_path, db_path)
         except Exception as e:
@@ -57,7 +69,8 @@ def simulate_game_win_fast(margin, seconds_left, trials=10000):
     team_b_pts = np.random.poisson(1.08, (trials, possessions)).sum(axis=1)
     return np.mean((margin + team_a_pts - team_b_pts) > 0)
 
-@st.cache_data
+# Explicitly silencing the cache spinner
+@st.cache_data(show_spinner=False)
 def get_processed_player_data(selected_player, _conn):
     query = """
     SELECT period, scoremargin, pctimestring, homedescription, visitordescription
@@ -90,7 +103,7 @@ conn = get_connection()
 if conn:
     player_list = pd.read_sql("SELECT DISTINCT full_name FROM player ORDER BY full_name", conn)
     
-    # Selection Sidebar starts blank
+    # Sidebar starts blank
     selected_player = st.sidebar.selectbox(
         "Select Player", 
         player_list['full_name'], 
@@ -99,7 +112,7 @@ if conn:
     )
 
     if selected_player:
-        # Only the custom spinner will show now
+        # This is the only spinner that will now be visible
         with st.spinner(f"Retrieving statistics for {selected_player}..."):
             res_df = get_processed_player_data(selected_player, conn)
 
@@ -127,7 +140,7 @@ if conn:
 
             st.altair_chart(bars, use_container_width=True)
         else:
-            st.warning(f"No free throw data found for {selected_player}.")
+            st.warning(f"No data for {selected_player}.")
     else:
-        # State when no player is selected
-        st.info("Select a player from the sidebar to view their Pressure-Adjusted statistics.")
+        # Default view
+        st.info("Select a player from the sidebar to begin.")
