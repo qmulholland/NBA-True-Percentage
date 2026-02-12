@@ -12,7 +12,7 @@ st.title("NBA True Clutch and Stochastic FT Analysis")
 
 # --- DATA DOWNLOAD & CONNECTION ---
 # IMPORTANT: Replace these with your actual Hugging Face details
-REPO_ID = "YOUR_USERNAME/nba-data-repo" 
+REPO_ID = "qpmulho/nba-data-repo" 
 DB_FILENAME = "nba.sqlite"
 
 @st.cache_resource
