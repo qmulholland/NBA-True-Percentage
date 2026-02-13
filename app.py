@@ -70,8 +70,9 @@ def get_connection():
     
     conn = sqlite3.connect(db_path, check_same_thread=False)
     try:
+        # This specific index targets the relationship between players and their shots
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_pbp_player1_id ON play_by_play(player1_id);")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_player_full_name ON player(full_name);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_pbp_player ON play_by_play(player1_id);")
         conn.commit()
     except:
         pass
