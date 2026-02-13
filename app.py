@@ -77,6 +77,11 @@ def get_connection():
         pass
     return conn
 
+# NEW: Optimized Player List Caching
+@st.cache_data(show_spinner=False)
+def get_player_list(_conn):
+    return pd.read_sql("SELECT DISTINCT full_name FROM player ORDER BY full_name", _conn)
+
 def simulate_game_win_fast(margin, seconds_left, trials=10000):
     if seconds_left <= 0:
         return 1.0 if margin > 0 else (0.5 if margin == 0 else 0.0)
@@ -116,11 +121,12 @@ def get_processed_player_data(selected_player, _conn):
 conn = get_connection()
 
 if conn:
-    player_list = pd.read_sql("SELECT DISTINCT full_name FROM player ORDER BY full_name", conn)
+    # UPDATED: Using the cached list for speed
+    player_data = get_player_list(conn)
     
     selected_player = st.sidebar.selectbox(
         "Select Player", 
-        player_list['full_name'], 
+        player_data['full_name'], 
         index=None, 
         placeholder="Choose a player..."
     )
